@@ -1,0 +1,142 @@
+from flask import Flask, request, render_template_string
+
+app = Flask(__name__)
+
+HTML_PAGE = """
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Profile Card Generator</title>
+
+    <style>
+
+        body{
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+        }
+
+        .container{
+            width: 500px;
+            margin: 40px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        h1{
+            text-align: center;
+        }
+
+        input, textarea{
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        button{
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover{
+            background-color: darkblue;
+        }
+
+        .card{
+            margin-top: 30px;
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            background-color: #fafafa;
+        }
+
+        .card img{
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .bio{
+            margin-top: 10px;
+            color: #555;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>User Profile Card Generator</h1>
+
+    <form method="POST">
+
+        <input type="text"
+               name="name"
+               placeholder="Enter your name"
+               required>
+
+        <textarea name="bio"
+                  placeholder="Enter your bio"
+                  required></textarea>
+
+        <input type="text"
+               name="image"
+               placeholder="Enter image URL"
+               required>
+
+        <button type="submit">Generate Profile</button>
+
+    </form>
+
+    {% if profile %}
+
+    <div class="card">
+
+        <img src="{{ profile.image }}" alt="Profile Image">
+
+        <h2>{{ profile.name }}</h2>
+
+        <p class="bio">{{ profile.bio }}</p>
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+</body>
+</html>
+
+"""
+
+@app.route("/", methods=["GET", "POST"])
+def home():
+
+    profile = None
+
+    if request.method == "POST":
+
+        name = request.form["name"]
+        bio = request.form["bio"]
+        image = request.form["image"]
+
+        profile = {
+            "name": name,
+            "bio": bio,
+            "image": image
+        }
+
+    return render_template_string(HTML_PAGE, profile=profile)
+
+if __name__ == "__main__":
+    app.run(debug=True)
