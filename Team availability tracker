@@ -1,0 +1,221 @@
+from flask import Flask, render_template_string, request, redirect
+import sqlite3
+
+app = Flask(__name__)
+
+# Create Database
+def init_db():
+
+    conn = sqlite3.connect("team.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS team (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            available INTEGER
+        )
+    """)
+
+    # Insert default users if table is empty
+    cursor.execute("SELECT COUNT(*) FROM team")
+
+    count = cursor.fetchone()[0]
+
+    if count == 0:
+
+        users = [
+            ("Alice", 1),
+            ("Bob", 0),
+            ("Charlie", 1),
+            ("David", 0)
+        ]
+
+        cursor.executemany(
+            "INSERT INTO team (name, available) VALUES (?, ?)",
+            users
+        )
+
+    conn.commit()
+    conn.close()
+
+# HTML Page
+HTML_PAGE = """
+
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>Team Availability Tracker</title>
+
+    <style>
+
+        body{
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+        }
+
+        .container{
+            width: 700px;
+            margin: 40px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        h1{
+            text-align: center;
+        }
+
+        .user-card{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+
+        .available{
+            background-color: #d4edda;
+        }
+
+        .not-available{
+            background-color: #f8d7da;
+        }
+
+        button{
+            padding: 8px 15px;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .on-btn{
+            background-color: green;
+        }
+
+        .off-btn{
+            background-color: red;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Team Availability Tracker</h1>
+
+    {% for user in users %}
+
+    <div class="user-card
+        {% if user[2] == 1 %}
+            available
+        {% else %}
+            not-available
+        {% endif %}
+    ">
+
+        <div>
+
+            <h3>{{ user[1] }}</h3>
+
+            {% if user[2] == 1 %}
+                <p>Status: Available</p>
+            {% else %}
+                <p>Status: Not Available</p>
+            {% endif %}
+
+        </div>
+
+        <form action="/toggle" method="POST">
+
+            <input type="hidden"
+                   name="user_id"
+                   value="{{ user[0] }}">
+
+            {% if user[2] == 1 %}
+
+                <button class="off-btn" type="submit">
+                    Set Unavailable
+                </button>
+
+            {% else %}
+
+                <button class="on-btn" type="submit">
+                    Set Available
+                </button>
+
+            {% endif %}
+
+        </form>
+
+    </div>
+
+    {% endfor %}
+
+</div>
+
+</body>
+</html>
+
+"""
+
+# Home Page
+@app.route("/")
+def home():
+
+    conn = sqlite3.connect("team.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM team")
+
+    users = cursor.fetchall()
+
+    conn.close()
+
+    return render_template_string(
+        HTML_PAGE,
+        users=users
+    )
+
+# Toggle Availability
+@app.route("/toggle", methods=["POST"])
+def toggle():
+
+    user_id = request.form["user_id"]
+
+    conn = sqlite3.connect("team.db")
+    cursor = conn.cursor()
+
+    # Get current status
+    cursor.execute(
+        "SELECT available FROM team WHERE id = ?",
+        (user_id,)
+    )
+
+    current = cursor.fetchone()[0]
+
+    # Toggle value
+    new_value = 0 if current == 1 else 1
+
+    cursor.execute(
+        "UPDATE team SET available = ? WHERE id = ?",
+        (new_value, user_id)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
+
+# Run App
+if __name__ == "__main__":
+
+    init_db()
+
+    app.run(debug=True)
